@@ -45,16 +45,29 @@ onmessage = function(e) {
       let edgeStrength = edgeMap[i];
 
       // Map edge strength to length: strong edge = short, weak edge = long
-      // Normalize edgeStrength to [0,1] using a reasonable max (e.g., 255)
       let normEdge = Math.min(edgeStrength / 255, 1);
       let length = config['Max Length'] * (1 - normEdge * 0.9); // 0.1x length at max edge
 
-      let z = getPixel(x, y);
-      let angle = 1 - ((z / 255) * Math.PI * 2),
-          cos = Math.cos(angle) * length,
-          sin = Math.sin(angle) * length;
+      // Map edge strength to arc angle: strong edge = more curved
+      // Arc angle from 10° (weak edge) to 120° (strong edge)
+      let minArc = Math.PI / 18;   // 10 degrees
+      let maxArc = Math.PI * 2 / 3; // 120 degrees
+      let arcAngle = minArc + (maxArc - minArc) * normEdge;
 
-      output.push([[x + cos, y + sin], [x - cos, y - sin]]);
+      // Orienation
+      let baseAngle = (edgeStrength/255) * Math.PI * 2;
+
+      // Arc center is at (x, y)
+      let points = [];
+      let numPoints = 5;
+      for (let j = 0; j < numPoints; j++) {
+        let t = j / (numPoints - 1); // 0..1
+        let theta = baseAngle - arcAngle / 2 + arcAngle * t;
+        let px = x + Math.cos(theta) * length;
+        let py = y + Math.sin(theta) * length;
+        points.push([px, py]);
+      }
+      output.push(points);
     }
   }
 
