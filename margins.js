@@ -1,9 +1,9 @@
 importScripts('helpers.js')
 
 postMessage(['sliders', defaultControls.concat([
-  {label: 'Squiggles', value: 100, min: 100, max: 10000},
-  {label: 'Max Length', value: 5, min: 0.1, max: 40, step: 0.1},
-  {label: 'Threshold', value: 50, min: 1, max: 254},
+  {label: 'Squiggles', value: 2000, min: 500, max: 25000},
+  {label: 'Max Length', value: 10, min: 0.1, max: 40, step: 0.1},
+  {label: 'Edge Detection', type:'checkbox', checked:true},
   {label: 'Optimize route', type:'checkbox', checked:true},
 ])]);
 
@@ -15,7 +15,7 @@ onmessage = function(e) {
   const w=config.width, h=config.height;
   let output=[]
 
-  function computeEdgeMap(pixData, w, h) {
+  function computeEdgeMap( w, h ) {
     const edgeMap = new Array(w * h).fill(0);
     for (let y = 1; y < h - 1; y++) {
       for (let x = 1; x < w - 1; x++) {
@@ -35,17 +35,28 @@ onmessage = function(e) {
     return edgeMap;
   }
 
-  const edgeMap = computeEdgeMap(pixData, w, h);
+  // If edge detection is enabled, compute edge map
+  let edgeMap = [];
+  if (config['Edge Detection']) {
+    edgeMap = computeEdgeMap(w, h)
+  }
 
   // Calculate grid size to evenly distribute squiggles
   const gridSize = Math.sqrt((w * h) / config.Squiggles) | 0;
   for (let y = gridSize; y < h - gridSize; y += gridSize) {
     for (let x = gridSize; x < w - gridSize; x += gridSize) {
       let i = y * w + x;
-      let edgeStrength = edgeMap[i];
+
+      let strength;
+      if (config['Edge Detection']) {
+        strength = edgeMap[i];
+      } else {
+        strength = getPixel(x, y);
+      }
 
       // Map edge strength to length: strong edge = short, weak edge = long
-      let normEdge = Math.min(edgeStrength / 255, 1);
+      // let normEdge = Math.min(edgeStrength / 255, 1);
+      let normEdge = 1;
       let length = config['Max Length'] * (1 - normEdge * 0.9); // 0.1x length at max edge
 
       // Map edge strength to arc angle: strong edge = more curved
@@ -55,7 +66,7 @@ onmessage = function(e) {
       let arcAngle = minArc + (maxArc - minArc) * normEdge;
 
       // Orienation
-      let baseAngle = (edgeStrength/255) * Math.PI * 2;
+      let baseAngle = (strength/255) * Math.PI * 2;
 
       // Arc center is at (x, y)
       let points = [];
