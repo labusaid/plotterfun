@@ -5,7 +5,7 @@ postMessage(['sliders', defaultControls.concat([
   {label: 'Max Length', value: 10, min: 0.1, max: 20, step: 0.1},
   {label: 'Min Arc', value: 10, min: 0, max: 180, step: 5},         // degrees
   {label: 'Max Arc', value: 120, min: 0, max: 180, step: 5},      // degrees
-  {label: 'Rotation Factor', value: 0, min: -1, max: 1, step: 0.1},
+  {label: 'Rotation Factor', value: .5, min: -1, max: 1, step: 0.1},
   {label: 'Optimize route', type:'checkbox', checked:false},
 ])]);
 
