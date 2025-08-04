@@ -1,9 +1,11 @@
 importScripts('helpers.js')
 
 postMessage(['sliders', defaultControls.concat([
-  {label: 'Squiggles', value: 2000, min: 500, max: 25000},
-  {label: 'Max Length', value: 10, min: 0.1, max: 40, step: 0.1},
-  {label: 'Edge Detection', type:'checkbox', checked:false},
+  {label: 'Squiggles', value: 2000, min: 500, max: 10000},
+  {label: 'Max Length', value: 10, min: 0.1, max: 20, step: 0.1},
+  {label: 'Min Arc', value: 10, min: 0, max: 180, step: 5},         // degrees
+  {label: 'Max Arc', value: 120, min: 0, max: 180, step: 5},      // degrees
+  {label: 'Rotation Factor', value: 0, min: -1, max: 1, step: 0.1},
   {label: 'Optimize route', type:'checkbox', checked:false},
 ])]);
 
@@ -15,58 +17,20 @@ onmessage = function(e) {
   const w=config.width, h=config.height;
   let output=[]
 
-  function computeEdgeMap( w, h ) {
-    const edgeMap = new Array(w * h).fill(0);
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        // Simple gradient magnitude (Sobel-like)
-        const i = y * w + x;
-        const gx = (
-          -getPixel(x-1, y-1) - 2*getPixel(x-1, y) - getPixel(x-1, y+1) +
-          getPixel(x+1, y-1) + 2*getPixel(x+1, y) + getPixel(x+1, y+1)
-        );
-        const gy = (
-          -getPixel(x-1, y-1) - 2*getPixel(x, y-1) - getPixel(x+1, y-1) +
-          getPixel(x-1, y+1) + 2*getPixel(x, y+1) + getPixel(x+1, y+1)
-        );
-        edgeMap[i] = Math.sqrt(gx*gx + gy*gy);
-      }
-    }
-    return edgeMap;
-  }
-
-  // If edge detection is enabled, compute edge map
-  let edgeMap = [];
-  if (config['Edge Detection']) {
-    edgeMap = computeEdgeMap(w, h)
-  }
-
   // Calculate grid size to evenly distribute squiggles
   const gridSize = Math.sqrt((w * h) / config.Squiggles) | 0;
   for (let y = gridSize; y < h - gridSize; y += gridSize) {
     for (let x = gridSize; x < w - gridSize; x += gridSize) {
       let i = y * w + x;
 
-      let strength;
-      if (config['Edge Detection']) {
-        strength = edgeMap[i];
-      } else {
-        strength = getPixel(x, y);
-      }
+      let length = config['Max Length'];
+      let minArc = config['Min Arc'] * Math.PI / 180;  // degrees to radians
+      let maxArc = config['Max Arc'] * Math.PI / 180;  // degrees to radians
+      let normStrength = getPixel(x, y) / 255;
+      let arcAngle = minArc + (maxArc - minArc) * normStrength;
 
-      // Map edge strength to length: strong edge = short, weak edge = long
-      // let normEdge = Math.min(edgeStrength / 255, 1);
-      let normEdge = 1;
-      let length = config['Max Length'] * (1 - normEdge * 0.9); // 0.1x length at max edge
-
-      // Map edge strength to arc angle: strong edge = more curved
-      // Arc angle from 10° (weak edge) to 120° (strong edge)
-      let minArc = Math.PI / 18;   // 10 degrees
-      let maxArc = Math.PI * 2 / 3; // 120 degrees
-      let arcAngle = minArc + (maxArc - minArc) * normEdge;
-
-      // Orienation
-      let baseAngle = (strength/255) * Math.PI * 2;
+      // rotate the arc based on strength and rotation factor
+      let baseAngle = config['Rotation Factor'] * normStrength * Math.PI * 2;
 
       // Arc center is at (x, y)
       let points = [];
