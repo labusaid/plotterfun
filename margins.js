@@ -3,8 +3,8 @@ importScripts('helpers.js')
 postMessage(['sliders', defaultControls.concat([
   {label: 'Squiggles', value: 2000, min: 500, max: 25000},
   {label: 'Max Length', value: 10, min: 0.1, max: 40, step: 0.1},
-  {label: 'Edge Detection', type:'checkbox', checked:true},
-  {label: 'Optimize route', type:'checkbox', checked:true},
+  {label: 'Edge Detection', type:'checkbox', checked:false},
+  {label: 'Optimize route', type:'checkbox', checked:false},
 ])]);
 
 
